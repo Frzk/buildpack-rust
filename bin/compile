@@ -22,7 +22,7 @@ version="${VERSION:-stable}"
 
 # Load toolchain configuration, if any:
 if [ -f "${build_dir}/rust-toolchain" ]; then
-    version="$(cat "${build_dir}/rust-toolchain" )"
+    version="$( cat "${build_dir}/rust-toolchain" )"
 fi
 
 # Load configuration variables, if any:
@@ -35,15 +35,13 @@ build_flags="${RUST_CARGO_BUILD_FLAGS:-"--release"}"
 build_path="${RUST_BUILD_PATH:-""}"
 
 
-#cat <<EOF > "${buildpack_dir}/export"
-cat <<EOF > "${build_dir}/export"
+cat <<EOF > "${buildpack_dir}/export"
 export RUSTUP_HOME="${cache_dir}/multirust"
 export CARGO_HOME="${cache_dir}/cargo"
 PATH="\$CARGO_HOME/bin:\$PATH"
 EOF
 
-source "${build_dir}/export"
-# source "${buildpack_dir}/export"
+source "${buildpack_dir}/export"
 
 
 pushd "${cache_dir}" > /dev/null
@@ -77,27 +75,23 @@ popd
 if [ -v "${RUST_SKIP_BUILD}" ]; then
     echo "-----> Skipping Cargo build"
 else
-    # Build the project (into CARGO_TARGET_DIR so we have caching) and copy it
-    # back to the source tree.  In theory, we could probably just copy the
-    # binary or do something clever with `cargo install`, but we haven't
-    # figured that out yet.
-    #
-    # To debug git issues:
-    #export RUST_LOG="cargo::sources::git=debug"
-    # To debug compiler and linking issues, add `--verbose`.
+    # Build the project and copy it back to the source tree.
+    # Watch https://github.com/rust-lang/cargo/issues/6790 and the `--out-dir`
+    # option for a potential, future, easier way to do this.
     echo "-----> Building application using Cargo"
-
-    target_dir="${RUST_CARGO_TARGET_DIR:-"${cache_dir}/target"}"
-
-    # export CARGO_TARGET_DIR="${target_dir}"
 
     pushd "${build_dir}/${build_path}" > /dev/null
 
-    rm --recursive --force "./target"
+    rm --recursive --force "target"
+    mkdir -p "target/release"
 
-    cargo build ${build_flags} --target-dir "${target_dir}"
+    target_dir="${CARGO_TARGET_DIR:-"${cache_dir}/target"}"
 
-    mkdir -p "./target/release"
+    if [ -n "${BUILDPACK_DEBUG}" ]; then
+        cargo build ${build_flags} --target-dir "${target_dir}" --verbose
+    else
+        cargo build ${build_flags} --target-dir "${target_dir}" --quiet
+    fi
 
     find "${target_dir}/release" -maxdepth 1 -type f -executable \
         -exec cp --verbose --target-directory="target/release" {} \;
