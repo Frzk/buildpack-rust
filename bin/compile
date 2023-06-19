@@ -35,14 +35,13 @@ build_flags="${RUST_CARGO_BUILD_FLAGS:-"--release"}"
 build_path="${RUST_BUILD_PATH:-""}"
 
 
-RUSTUP_HOME="${cache_dir}/multirust"
-export RUSTUP_HOME
+cat <<EOF > "${buildpack_dir}/export"
+export RUSTUP_HOME="${cache_dir}/multirust"
+export CARGO_HOME="${cache_dir}/cargo"
+PATH="\$CARGO_HOME/bin:\$PATH"
+EOF
 
-CARGO_HOME="${cache_dir}/cargo"
-export CARGO_HOME
-
-PATH="$CARGO_HOME/bin:$PATH"
-export PATH
+source "${buildpack_dir}/export"
 
 
 pushd "${cache_dir}" > /dev/null
@@ -88,8 +87,8 @@ else
 
     target_dir="${RUST_CARGO_TARGET_DIR:-"${cache_dir}/target"}"
 
-    CARGO_TARGET_DIR="${target_dir}"
-    export CARGO_TARGET_DIR
+    export CARGO_TARGET_DIR="${target_dir}"
+    # export CARGO_TARGET_DIR
 
 
     pushd "${build_dir}/${build_path}" > /dev/null
@@ -104,7 +103,3 @@ else
 
     popd
 fi
-
-
-# TODO: Export environment for later buildpacks
-export | grep -E -e ' (PATH|LD_LIBRARY_PATH|LIBRARY_PATH|INCLUDE_PATH|CPATH|CPPPATH|PKG_CONFIG_PATH)=' > "${buildpack_dir}/export"
