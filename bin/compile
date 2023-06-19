@@ -3,8 +3,6 @@
 
 set -eo pipefail
 
-export BUILDPACK_DEBUG="yes"
-
 if [ -n "${BUILDPACK_DEBUG}" ]
 then
     set -x
