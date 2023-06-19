@@ -19,6 +19,9 @@ readonly buildpack_dir="$( readlink -f "${base_dir}/.." )"
 
 
 version="${VERSION:-stable}"
+build_flags="${RUST_CARGO_BUILD_FLAGS:-"--release"}"
+build_path="${RUST_BUILD_PATH:-""}"
+
 
 # Load toolchain configuration, if any:
 if [ -f "${build_dir}/rust-toolchain" ]; then
@@ -31,8 +34,26 @@ if [ -f "${build_dir}/RustConfig" ]; then
 fi
 
 
-build_flags="${RUST_CARGO_BUILD_FLAGS:-"--release"}"
-build_path="${RUST_BUILD_PATH:-""}"
+rust_update() {
+    local version="${1}"
+
+    echo "-----> Checking for new releases of Rust ${version} channel"
+
+    rustup self update \
+        && rustup update "${version}" \
+        && rustup default "${version}"
+}
+
+rust_setup() {
+    echo "-----> Downloading rustup"
+    curl --retry 3 --silent --location "https://sh.rustup.rs" \
+        --output "rustup.sh"
+    chmod u+x "rustup.sh"
+
+    echo "-----> Installing Rust ${version} channel using rustup"
+    ./rustup.sh -y --default-toolchain "${version}"
+    rm rustup.sh
+}
 
 
 cat <<EOF > "${buildpack_dir}/export"
@@ -46,23 +67,7 @@ source "${buildpack_dir}/export"
 
 pushd "${cache_dir}" > /dev/null
 
-if [ -d "${CARGO_HOME}" ]; then
-    echo "-----> Checking for new releases of Rust ${version} channel"
-    # It's possible that $version has changed,
-    # or that the `stable` channel has been updated.
-    rustup self update
-    rustup update "${version}"
-    rustup default "${version}"
-else
-    echo "-----> Downloading rustup"
-    curl --retry 3 --silent --location "https://sh.rustup.rs" \
-        --output "rustup.sh"
-    chmod u+x "rustup.sh"
-
-    echo "-----> Installing Rust channel ${version} using rustup"
-    ./rustup.sh -y --default-toolchain "${version}"
-    rm rustup.sh
-fi
+rust_update || rust_setup
 
 if [ ! -x "${CARGO_HOME}/bin/rustc" ]; then
   echo "failed: Cannot find Rust binaries at ${CARGO_HOME}"
@@ -93,7 +98,7 @@ else
         cargo build ${build_flags} --target-dir "${target_dir}" --quiet
     fi
 
-    find "${target_dir}/release" -maxdepth 1 -type f -executable \
+    find "${target_dir}/release" -maxdepth 2 -type f -executable \
         -exec cp --verbose --target-directory="target/release" {} \;
 
     popd
