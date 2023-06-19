@@ -35,13 +35,15 @@ build_flags="${RUST_CARGO_BUILD_FLAGS:-"--release"}"
 build_path="${RUST_BUILD_PATH:-""}"
 
 
-cat <<EOF > "${buildpack_dir}/export"
+#cat <<EOF > "${buildpack_dir}/export"
+cat <<EOF > "${build_dir}/export"
 export RUSTUP_HOME="${cache_dir}/multirust"
 export CARGO_HOME="${cache_dir}/cargo"
 PATH="\$CARGO_HOME/bin:\$PATH"
 EOF
 
-source "${buildpack_dir}/export"
+source "${build_dir}/export"
+# source "${buildpack_dir}/export"
 
 
 pushd "${cache_dir}" > /dev/null
@@ -87,19 +89,20 @@ else
 
     target_dir="${RUST_CARGO_TARGET_DIR:-"${cache_dir}/target"}"
 
-    export CARGO_TARGET_DIR="${target_dir}"
-    # export CARGO_TARGET_DIR
-
+    # export CARGO_TARGET_DIR="${target_dir}"
 
     pushd "${build_dir}/${build_path}" > /dev/null
 
-    rm -rf "target"
+    rm --recursive --force "./target"
 
-    cargo build ${build_flags}
-    mkdir -p "target/release"
+    cargo build ${build_flags} --target-dir "${target_dir}"
 
-    find "${CARGO_TARGET_DIR}/release" -maxdepth 1 -type f -executable \
-        -exec cp --target-directory "target/release" {} \;
+    mkdir -p "./target/release"
+
+    find "${target_dir}/release" -maxdepth 1 -type f -executable \
+        -exec cp --verbose --target-directory="target/release" {} \;
 
     popd
 fi
+
+echo "Done."
