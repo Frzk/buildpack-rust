@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+set -eu
+
+build_dir="${1}"
+rc=1
+
+if [ -f "${build_dir}/RustConfig" ] \
+    || [ -f "${build_dir}/rust-toolchain" ] \
+    || [ -f "${build_dir}/Cargo.toml" ]; then
+    echo "Rust"
+    rc=0
+fi
+
+exit "${rc}"
