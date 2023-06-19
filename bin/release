@@ -1,3 +1,10 @@
 #!/usr/bin/env bash
+# bin/release <build-dir>
 
-exit 0
+cat <<EOF
+---
+default_process_types:
+  web: ">&2 echo 'Please use a Procfile to specify a default start command for this buildpack'"
+EOF
+
+exit 1
