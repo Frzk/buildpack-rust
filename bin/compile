@@ -18,7 +18,7 @@ readonly base_dir="$( cd -P "$( dirname "$0" )" && pwd )"
 readonly buildpack_dir="$( readlink -f "${base_dir}/.." )"
 
 
-version="${VERSION:-stable}"
+version="${VERSION:-"stable"}"
 build_flags="${RUST_CARGO_BUILD_FLAGS:-"--release"}"
 build_path="${RUST_BUILD_PATH:-""}"
 
@@ -38,13 +38,14 @@ rust_update() {
     local version="${1}"
 
     echo "-----> Checking for new releases of Rust ${version} channel"
-
     rustup self update \
         && rustup update "${version}" \
         && rustup default "${version}"
 }
 
 rust_setup() {
+    local version="${1}"
+
     echo "-----> Downloading rustup"
     curl --retry 3 --silent --location "https://sh.rustup.rs" \
         --output "rustup.sh"
@@ -67,7 +68,8 @@ source "${buildpack_dir}/export"
 
 pushd "${cache_dir}" > /dev/null
 
-rust_update || rust_setup
+rust_update "${version}" 2>/dev/null \
+    || rust_setup "${version}"
 
 if [ ! -x "${CARGO_HOME}/bin/rustc" ]; then
   echo "failed: Cannot find Rust binaries at ${CARGO_HOME}"
