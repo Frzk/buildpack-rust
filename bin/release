@@ -4,7 +4,7 @@
 cat <<EOF
 ---
 default_process_types:
-  web: ">&2 echo 'Please use a Procfile to specify a default start command for this buildpack'"
+  web: ">&2 echo 'Please use a Procfile to specify a default start command for this buildpack' && exit 1"
 EOF
 
-exit 1
+exit 0
